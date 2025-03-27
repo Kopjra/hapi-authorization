@@ -44,14 +44,14 @@
     "underscore": "^1.9.1"
   },
   "devDependencies": {
+    "@hapi/hapi": "^20.3.0",
     "chai": "^3.4.1",
     "coveralls": "^2.11.6",
-    "hapi": "^17.4.0",
     "istanbul": "^0.4.1",
     "jscoverage": "^0.6.0",
     "mocha": "^2.3.4"
   },
   "peerDependencies": {
-    "hapi": ">= 10"
+    "@hapi/hapi": ">=20"
   }
 }

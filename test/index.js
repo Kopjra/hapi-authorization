@@ -1,6 +1,6 @@
 // External modules
 const expect = require('chai').expect;
-const Hapi = require('hapi');
+const Hapi = require('@hapi/hapi');
 const Joi = require('joi');
 
 // Internal modules
@@ -26,16 +26,16 @@ describe('hapi-authorization', () => {
 		server.route({ method: 'GET', path: '/', options: {
 			handler: function (request, h) {return new Error("uncaught exception test");}
 		}});
-    await server.register(plugin, {});
-    
-    server.start().then(() => {
-      server.inject({method: 'GET', url: '/'}).then((res) => {
-        internals.asyncCheck(() => {
-          expect(res.statusCode).to.equal(500);
-          server.stop(NOOP);
-        }, done);
-      });
-    });
+		await server.register(plugin, {});
+
+		server.start().then(() => {
+		  server.inject({method: 'GET', url: '/'}).then((res) => {
+			internals.asyncCheck(() => {
+			  expect(res.statusCode).to.equal(500);
+			  server.stop(NOOP);
+			}, done);
+		  });
+		});
 	});
 
 	it('makes sure that hapi-authorization can be enabled only for secured routes', (done) => {
@@ -383,7 +383,7 @@ describe('hapi-authorization', () => {
 
 		describe('ACL roles', () => {
 
-			it('returns an error when a user with unsuited role tries to access a role protected route', (done) => {
+			it('returns an error when a user with unsuited role tries to access a role protected route 1', (done) => {
 				const server = new Hapi.Server();
 				
 				server.auth.scheme('custom', internals.authSchema);
@@ -395,7 +395,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "TEST";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'USER'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'USER'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 							expect(res.result.message).to.equal("Unauthorized");
@@ -413,10 +413,12 @@ describe('hapi-authorization', () => {
 				server.route({ method: 'GET', path: '/', options: {
 					auth: 'default',
 					plugins: {'hapiAuthorization': {roles: ['USER', 'ADMIN']}},
-					handler: (request, h) => { return "Authorized";}
+					handler: (request, h) => {
+						return "Authorized";
+					}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.payload).to.equal('Authorized');
 						}, done);
@@ -436,7 +438,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.equal('Invalid route options (Invalid settings) ValidationError: "role" must be a string');
@@ -457,7 +459,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.equal('Invalid route options (Invalid settings) ValidationError: "roles" must be an array');
@@ -478,7 +480,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.equal('Invalid route options (Invalid settings) ValidationError: "role" conflict with forbidden peer "roles"');
@@ -500,7 +502,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "TEST";}
 				}});
 				server.register(customPluginObject, {}, (err) => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'EMPLOYEE'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'EMPLOYEE'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 							expect(res.result.message).to.equal("Unauthorized");
@@ -522,7 +524,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "TEST";}
 				}});
 				server.register(customPluginObject, {}, (err) => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'KING'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'KING'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 							expect(res.result.message).to.equal("Unauthorized");
@@ -544,7 +546,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(customPluginObject, {}, (err) => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'EMPLOYEE'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'EMPLOYEE'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.payload).to.equal('Authorized');
@@ -554,7 +556,7 @@ describe('hapi-authorization', () => {
 			});
 
 			// TODO
-			it.skip('Allows access to protected method for multiple authorized roles', (done) => {
+			it.skip('Allows access to protected method for multiple authorized roles1', (done) => {
 				const server = new Hapi.Server();
 				
 				server.auth.scheme('custom', internals.authSchema);
@@ -566,7 +568,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(customPluginObject, {}, (err) => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'MANAGER'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'MANAGER'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.payload).to.equal('Authorized');
 						}, done);
@@ -587,7 +589,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(customPluginObject, {}, (err) => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'EMPLOYEE'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'EMPLOYEE'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 
 							expect(res.statusCode).to.equal(403);
@@ -622,7 +624,7 @@ describe('hapi-authorization', () => {
 				};
 
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'MANAGER'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'MANAGER'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 
 							expect(res.statusCode).to.equal(403);
@@ -657,7 +659,7 @@ describe('hapi-authorization', () => {
 				};
 
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'OWNER'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'OWNER'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 
 							expect(res.statusCode).to.equal(403);
@@ -692,7 +694,7 @@ describe('hapi-authorization', () => {
 				};
 
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'OWNER'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'OWNER'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 
 							expect(res.statusCode).to.equal(403);
@@ -715,7 +717,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(customPluginObject, {}, (err) => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.equal('Invalid route options (Invalid settings) ValidationError: "role" must be a string');
@@ -737,7 +739,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(customPluginObject, {}, (err) => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.equal('Invalid route options (Invalid settings) ValidationError: "roles" must be an array');
@@ -759,7 +761,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(customPluginObject, {}, (err) => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.equal('Invalid route options (Invalid settings) ValidationError: "role" conflict with forbidden peer "roles"');
@@ -784,7 +786,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400)
 							expect(res.result.message).to.match(/"aclQuery" must be a Function/);
@@ -807,7 +809,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return request.plugins.hapiAuthorization.entity;}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.result.name).to.equal('Asaf');
@@ -830,7 +832,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Oops";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(404);
 						}, done);
@@ -852,7 +854,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Oops";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 						}, done);
@@ -875,7 +877,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.match(/"aclQuery" is required/);
@@ -901,7 +903,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(404);
 						}, done);
@@ -927,7 +929,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 						}, done);
@@ -953,7 +955,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(500);
 						}, done);
@@ -981,7 +983,7 @@ describe('hapi-authorization', () => {
 					}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.result.name).to.equal('Hello');
@@ -1010,7 +1012,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 							expect(res.result.message).to.equal("Unauthorized");
@@ -1036,7 +1038,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN', _id: '2'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN', _id: '2'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 							expect(res.result.message).to.equal("Unauthorized");
@@ -1062,7 +1064,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN', _id: '1'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN', _id: '1'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.result).to.equal("Authorized");
@@ -1089,7 +1091,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN', myId: '1'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN', myId: '1'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.result).to.equal("Authorized");
@@ -1116,7 +1118,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN', _id: '1'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN', _id: '1'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.result).to.equal("Authorized");
@@ -1137,9 +1139,9 @@ describe('hapi-authorization', () => {
 
 				server.route({ method: 'GET', path: '/', options: {
 					validate: {
-						query: {
+						query: Joi.object({
 							name: Joi.string().required()
-						}
+						})
 					},
 					auth: 'default',
 					plugins: {'hapiAuthorization': {
@@ -1154,7 +1156,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN', _id: '1'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN', _id: '1'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.equal('Invalid request query input');
@@ -1171,9 +1173,9 @@ describe('hapi-authorization', () => {
 
 				server.route({ method: 'GET', path: '/', options: {
 					validate: {
-						query: {
+						query: Joi.object({
 							name: Joi.string().required()
-						}
+						})
 					},
 					auth: 'default',
 					plugins: {'hapiAuthorization': {
@@ -1188,7 +1190,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/?name=John Doe', credentials: {role: 'ADMIN', _id: '1'}}).then((res) => {
+					server.inject({method: 'GET', url: '/?name=John Doe', auth: {strategy: "default", credentials: {user: {role: 'ADMIN', _id: '1'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.result).to.equal("Authorized");
@@ -1205,9 +1207,9 @@ describe('hapi-authorization', () => {
 
 				server.route({ method: 'POST', path: '/', options: {
 					validate: {
-						payload: {
+						payload: Joi.object({
 							name: Joi.string().required()
-						}
+						})
 					},
 					auth: 'default',
 					plugins: {'hapiAuthorization': {
@@ -1222,7 +1224,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'POST', url: '/', payload: {}, credentials: {role: 'ADMIN', _id: '1'}}).then((res) => {
+					server.inject({method: 'POST', url: '/', payload: {}, auth: {strategy: "default", credentials: {user: {role: 'ADMIN', _id: '1'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.equal('Invalid request payload input');
@@ -1239,9 +1241,9 @@ describe('hapi-authorization', () => {
 
 				server.route({ method: 'POST', path: '/', options: {
 					validate: {
-						payload: {
+						payload: Joi.object({
 							name: Joi.string().required()
-						}
+						})
 					},
 					auth: 'default',
 					plugins: {'hapiAuthorization': {
@@ -1256,7 +1258,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'POST', url: '/', payload: { name: "John Doe"}, credentials: {role: 'ADMIN', _id: '1'}}).then((res) => {
+					server.inject({method: 'POST', url: '/', payload: { name: "John Doe"}, auth: {strategy: "default", credentials: {user: {role: 'ADMIN', _id: '1'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.result).to.equal("Authorized");
@@ -1297,7 +1299,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "TEST";}
 				}});
 				server.register(plugin).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'USER'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'USER'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 							expect(res.result.message).to.equal("Unauthorized");
@@ -1318,7 +1320,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "TEST";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'KING'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'KING'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 							expect(res.result.message).to.equal("Unauthorized");
@@ -1327,7 +1329,7 @@ describe('hapi-authorization', () => {
 				});
 			});
 
-			it('Allows access to protected method for multiple authorized roles', (done) => {
+			it('Allows access to protected method for multiple authorized roles2', (done) => {
 				const server = new Hapi.Server();
 				
 				server.auth.scheme('custom', internals.authSchema);
@@ -1339,7 +1341,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.payload).to.equal('Authorized');
 						}, done);
@@ -1359,7 +1361,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.equal('Invalid route options (Invalid settings) ValidationError: "role" must be a string');
@@ -1380,7 +1382,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.equal('Invalid route options (Invalid settings) ValidationError: "roles" must be an array');
@@ -1401,7 +1403,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.equal('Invalid route options (Invalid settings) ValidationError: "role" conflict with forbidden peer "roles"');
@@ -1422,7 +1424,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "TEST";}
 				}});
 				server.register(plugin).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'EMPLOYEE'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'EMPLOYEE'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 							expect(res.result.message).to.equal("Unauthorized");
@@ -1443,7 +1445,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "TEST";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'KING'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'KING'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 							expect(res.result.message).to.equal("Unauthorized");
@@ -1464,7 +1466,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'EMPLOYEE'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'EMPLOYEE'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.payload).to.equal('Authorized');
@@ -1473,7 +1475,7 @@ describe('hapi-authorization', () => {
 				});
 			});
 
-			it('Allows access to protected method for multiple authorized roles', (done) => {
+			it('Allows access to protected method for multiple authorized roles3', (done) => {
 				const server = new Hapi.Server();
 				
 				server.auth.scheme('custom', internals.authSchema);
@@ -1485,7 +1487,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'MANAGER'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'MANAGER'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.payload).to.equal('Authorized');
 						}, done);
@@ -1505,7 +1507,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'EMPLOYEE'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'EMPLOYEE'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 
 							expect(res.statusCode).to.equal(403);
@@ -1540,7 +1542,7 @@ describe('hapi-authorization', () => {
 				};
 
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'MANAGER'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'MANAGER'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 
 							expect(res.statusCode).to.equal(403);
@@ -1575,7 +1577,7 @@ describe('hapi-authorization', () => {
 				};
 
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'OWNER'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'OWNER'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 
 							expect(res.statusCode).to.equal(403);
@@ -1610,7 +1612,7 @@ describe('hapi-authorization', () => {
 				};
 
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'OWNER'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'OWNER'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 
 							expect(res.statusCode).to.equal(403);
@@ -1632,7 +1634,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.equal('Invalid route options (Invalid settings) ValidationError: "role" must be a string');
@@ -1653,7 +1655,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.equal('Invalid route options (Invalid settings) ValidationError: "roles" must be an array');
@@ -1674,7 +1676,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.equal('Invalid route options (Invalid settings) ValidationError: "role" conflict with forbidden peer "roles"');
@@ -1699,7 +1701,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400)
 							expect(res.result.message).to.match(/"aclQuery" must be a Function/);
@@ -1722,7 +1724,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return request.plugins.hapiAuthorization.entity;}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.result.name).to.equal('Asaf');
@@ -1745,7 +1747,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Oops";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(404);
 						}, done);
@@ -1767,7 +1769,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Oops";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 						}, done);
@@ -1790,7 +1792,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.match(/"aclQuery" is required/);
@@ -1816,7 +1818,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(404);
 						}, done);
@@ -1842,7 +1844,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 						}, done);
@@ -1868,7 +1870,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(500);
 						}, done);
@@ -1896,7 +1898,7 @@ describe('hapi-authorization', () => {
 					}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.result.name).to.equal('Hello');
@@ -1925,7 +1927,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 							expect(res.result.message).to.equal("Unauthorized");
@@ -1951,7 +1953,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN', _id: '2'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN', _id: '2'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 							expect(res.result.message).to.equal("Unauthorized");
@@ -1977,7 +1979,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN', _id: '1'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN', _id: '1'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.result).to.equal("Authorized");
@@ -2004,7 +2006,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN', myId: '1'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN', myId: '1'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.result).to.equal("Authorized");
@@ -2031,7 +2033,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN', _id: '1'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN', _id: '1'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.result).to.equal("Authorized");
@@ -2072,7 +2074,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "TEST";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'USER'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'USER'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 							expect(res.result.message).to.equal("Unauthorized");
@@ -2093,7 +2095,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "TEST";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'KING'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'KING'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 							expect(res.result.message).to.equal("Unauthorized");
@@ -2114,7 +2116,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.payload).to.equal('Authorized');
@@ -2135,7 +2137,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.equal('Invalid route options (Invalid settings) ValidationError: "role" must be a string');
@@ -2156,7 +2158,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.equal('Invalid route options (Invalid settings) ValidationError: "roles" must be an array');
@@ -2177,7 +2179,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.equal('Invalid route options (Invalid settings) ValidationError: "role" conflict with forbidden peer "roles"');
@@ -2198,7 +2200,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "TEST";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'EMPLOYEE'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'EMPLOYEE'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 							expect(res.result.message).to.equal("Unauthorized");
@@ -2219,7 +2221,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "TEST";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'KING'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'KING'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 							expect(res.result.message).to.equal("Unauthorized");
@@ -2240,7 +2242,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'EMPLOYEE'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'EMPLOYEE'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.payload).to.equal('Authorized');
@@ -2249,7 +2251,7 @@ describe('hapi-authorization', () => {
 				});
 			});
 
-			it('Allows access to protected method for multiple authorized roles', (done) => {
+			it('Allows access to protected method for multiple authorized roles4', (done) => {
 				const server = new Hapi.Server();
 				
 				server.auth.scheme('custom', internals.authSchema);
@@ -2261,7 +2263,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'MANAGER'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'MANAGER'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.payload).to.equal('Authorized');
 						}, done);
@@ -2281,7 +2283,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'EMPLOYEE'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'EMPLOYEE'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 
 							expect(res.statusCode).to.equal(403);
@@ -2316,7 +2318,7 @@ describe('hapi-authorization', () => {
 				};
 
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'MANAGER'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'MANAGER'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 
 							expect(res.statusCode).to.equal(403);
@@ -2351,7 +2353,7 @@ describe('hapi-authorization', () => {
 				};
 
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'OWNER'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'OWNER'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 
 							expect(res.statusCode).to.equal(403);
@@ -2386,7 +2388,7 @@ describe('hapi-authorization', () => {
 				};
 
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'OWNER'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'OWNER'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 
 							expect(res.statusCode).to.equal(403);
@@ -2408,7 +2410,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.equal('Invalid route options (Invalid settings) ValidationError: "role" must be a string');
@@ -2429,7 +2431,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.equal('Invalid route options (Invalid settings) ValidationError: "roles" must be an array');
@@ -2450,7 +2452,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.equal('Invalid route options (Invalid settings) ValidationError: "role" conflict with forbidden peer "roles"');
@@ -2475,7 +2477,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400)
 							expect(res.result.message).to.match(/"aclQuery" must be a Function/);
@@ -2498,7 +2500,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return request.plugins.hapiAuthorization.entity;}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.result.name).to.equal('Asaf');
@@ -2521,7 +2523,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Oops";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(404);
 						}, done);
@@ -2543,7 +2545,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Oops";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 						}, done);
@@ -2567,7 +2569,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.match(/"aclQuery" is required/);
@@ -2593,7 +2595,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(404);
 						}, done);
@@ -2619,7 +2621,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 						}, done);
@@ -2645,7 +2647,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(500);
 						}, done);
@@ -2673,7 +2675,7 @@ describe('hapi-authorization', () => {
 					}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.result.name).to.equal('Hello');
@@ -2703,7 +2705,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 							expect(res.result.message).to.equal("Unauthorized");
@@ -2729,7 +2731,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN', _id: '2'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN', _id: '2'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 							expect(res.result.message).to.equal("Unauthorized");
@@ -2755,7 +2757,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN', _id: '1'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN', _id: '1'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.result).to.equal("Authorized");
@@ -2782,7 +2784,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN', myId: '1'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN', myId: '1'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.result).to.equal("Authorized");
@@ -2809,7 +2811,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN', _id: '1'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN', _id: '1'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.result).to.equal("Authorized");
@@ -2850,7 +2852,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "TEST";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'USER'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'USER'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 							expect(res.result.message).to.equal("Unauthorized");
@@ -2871,7 +2873,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "TEST";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'KING'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'KING'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 							expect(res.result.message).to.equal("Unauthorized");
@@ -2880,7 +2882,7 @@ describe('hapi-authorization', () => {
 				});
 			});
 
-			it('Allows access to protected method for multiple authorized roles', (done) => {
+			it('Allows access to protected method for multiple authorized roles5', (done) => {
 				const server = new Hapi.Server();
 				
 				server.auth.scheme('custom', internals.authSchema);
@@ -2892,7 +2894,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.payload).to.equal('Authorized');
 						}, done);
@@ -2912,7 +2914,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.equal('Invalid route options (Invalid settings) ValidationError: "role" must be a string');
@@ -2933,7 +2935,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.equal('Invalid route options (Invalid settings) ValidationError: "roles" must be an array');
@@ -2954,7 +2956,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.equal('Invalid route options (Invalid settings) ValidationError: "role" conflict with forbidden peer "roles"');
@@ -2975,7 +2977,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "TEST";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'EMPLOYEE'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'EMPLOYEE'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 							expect(res.result.message).to.equal("Unauthorized");
@@ -2996,7 +2998,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "TEST";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'KING'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'KING'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 							expect(res.result.message).to.equal("Unauthorized");
@@ -3017,7 +3019,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'EMPLOYEE'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'EMPLOYEE'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.payload).to.equal('Authorized');
@@ -3026,7 +3028,7 @@ describe('hapi-authorization', () => {
 				});
 			});
 
-			it('Allows access to protected method for multiple authorized roles', (done) => {
+			it('Allows access to protected method for multiple authorized roles6', (done) => {
 				const server = new Hapi.Server();
 				
 				server.auth.scheme('custom', internals.authSchema);
@@ -3038,7 +3040,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'MANAGER'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'MANAGER'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.payload).to.equal('Authorized');
 						}, done);
@@ -3058,7 +3060,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'EMPLOYEE'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'EMPLOYEE'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 
 							expect(res.statusCode).to.equal(403);
@@ -3093,7 +3095,7 @@ describe('hapi-authorization', () => {
 				};
 
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'MANAGER'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'MANAGER'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 
 							expect(res.statusCode).to.equal(403);
@@ -3128,7 +3130,7 @@ describe('hapi-authorization', () => {
 				};
 
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'OWNER'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'OWNER'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 
 							expect(res.statusCode).to.equal(403);
@@ -3163,7 +3165,7 @@ describe('hapi-authorization', () => {
 				};
 
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'OWNER'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'OWNER'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 
 							expect(res.statusCode).to.equal(403);
@@ -3185,7 +3187,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.equal('Invalid route options (Invalid settings) ValidationError: "role" must be a string');
@@ -3206,7 +3208,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.equal('Invalid route options (Invalid settings) ValidationError: "roles" must be an array');
@@ -3227,7 +3229,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.equal('Invalid route options (Invalid settings) ValidationError: "role" conflict with forbidden peer "roles"');
@@ -3252,7 +3254,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400)
 							expect(res.result.message).to.match(/"aclQuery" must be a Function/);
@@ -3275,7 +3277,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return request.plugins.hapiAuthorization.entity;}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.result.name).to.equal('Asaf');
@@ -3298,7 +3300,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Oops";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(404);
 						}, done);
@@ -3320,7 +3322,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Oops";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 						}, done);
@@ -3343,7 +3345,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.match(/"aclQuery" is required/);
@@ -3369,7 +3371,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(404);
 						}, done);
@@ -3395,7 +3397,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 						}, done);
@@ -3421,7 +3423,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(500);
 						}, done);
@@ -3449,7 +3451,7 @@ describe('hapi-authorization', () => {
 					}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.result.name).to.equal('Hello');
@@ -3479,7 +3481,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 							expect(res.result.message).to.equal("Unauthorized");
@@ -3505,7 +3507,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN', _id: '2'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN', _id: '2'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 							expect(res.result.message).to.equal("Unauthorized");
@@ -3518,7 +3520,12 @@ describe('hapi-authorization', () => {
 				const server = new Hapi.Server();
 				
 				server.auth.scheme('custom', internals.authSchema);
-				server.auth.strategy('default', 'custom', {});
+				server.auth.strategy('default', 'custom', {
+					validate: () => ({
+						isValid: true,
+						credentials: {user: {role: 'ADMIN', _id: '1'}}
+					})
+				});
 
 				server.route({ method: 'GET', path: '/', options: {
 					auth: 'default',
@@ -3531,7 +3538,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN', _id: '1'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN', _id: '1'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.result).to.equal("Authorized");
@@ -3558,7 +3565,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN', myId: '1'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN', myId: '1'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.result).to.equal("Authorized");
@@ -3585,7 +3592,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN', _id: '1'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN', _id: '1'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.result).to.equal("Authorized");
@@ -3626,7 +3633,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "TEST";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'USER'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'USER'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 							expect(res.result.message).to.equal("Unauthorized");
@@ -3647,7 +3654,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "TEST";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'KING'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'KING'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 							expect(res.result.message).to.equal("Unauthorized");
@@ -3668,7 +3675,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.payload).to.equal('Authorized');
 							expect(res.statusCode).to.equal(200);
@@ -3689,7 +3696,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.equal('Invalid route options (Invalid settings) ValidationError: "role" must be a string');
@@ -3710,7 +3717,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.equal('Invalid route options (Invalid settings) ValidationError: "roles" must be an array');
@@ -3731,7 +3738,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.equal('Invalid route options (Invalid settings) ValidationError: "role" conflict with forbidden peer "roles"');
@@ -3752,7 +3759,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "TEST";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'EMPLOYEE'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'EMPLOYEE'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 							expect(res.result.message).to.equal("Unauthorized");
@@ -3773,7 +3780,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "TEST";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'KING'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'KING'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 							expect(res.result.message).to.equal("Unauthorized");
@@ -3794,7 +3801,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'EMPLOYEE'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'EMPLOYEE'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.payload).to.equal('Authorized');
@@ -3803,7 +3810,7 @@ describe('hapi-authorization', () => {
 				});
 			});
 
-			it('Allows access to protected method for multiple authorized roles', (done) => {
+			it('Allows access to protected method for multiple authorized roles7', (done) => {
 				const server = new Hapi.Server();
 				
 				server.auth.scheme('custom', internals.authSchema);
@@ -3815,7 +3822,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'MANAGER'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'MANAGER'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.payload).to.equal('Authorized');
 						}, done);
@@ -3835,7 +3842,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'EMPLOYEE'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'EMPLOYEE'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 
 							expect(res.statusCode).to.equal(403);
@@ -3870,7 +3877,7 @@ describe('hapi-authorization', () => {
 				};
 
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'MANAGER'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'MANAGER'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 
 							expect(res.statusCode).to.equal(403);
@@ -3905,7 +3912,7 @@ describe('hapi-authorization', () => {
 				};
 
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'OWNER'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'OWNER'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 
 							expect(res.statusCode).to.equal(403);
@@ -3940,7 +3947,7 @@ describe('hapi-authorization', () => {
 				};
 
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'OWNER'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'OWNER'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 
 							expect(res.statusCode).to.equal(403);
@@ -3962,7 +3969,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.equal('Invalid route options (Invalid settings) ValidationError: "role" must be a string');
@@ -3983,7 +3990,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.equal('Invalid route options (Invalid settings) ValidationError: "roles" must be an array');
@@ -4004,7 +4011,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.equal('Invalid route options (Invalid settings) ValidationError: "role" conflict with forbidden peer "roles"');
@@ -4029,7 +4036,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400)
 							expect(res.result.message).to.match(/"aclQuery" must be a Function/);
@@ -4052,7 +4059,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return request.plugins.hapiAuthorization.entity;}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.result.name).to.equal('Asaf');
@@ -4075,7 +4082,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Oops";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(404);
 						}, done);
@@ -4097,7 +4104,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Oops";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 						}, done);
@@ -4120,7 +4127,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(400);
 							expect(res.result.message).to.match(/"aclQuery" is required/);
@@ -4146,7 +4153,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(404);
 						}, done);
@@ -4172,7 +4179,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 						}, done);
@@ -4198,7 +4205,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(500);
 						}, done);
@@ -4226,7 +4233,7 @@ describe('hapi-authorization', () => {
 					}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.result.name).to.equal('Hello');
@@ -4256,7 +4263,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 							expect(res.result.message).to.equal("Unauthorized");
@@ -4282,7 +4289,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN', _id: '2'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN', _id: '2'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(403);
 							expect(res.result.message).to.equal("Unauthorized");
@@ -4308,7 +4315,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN', _id: '1'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN', _id: '1'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.result).to.equal("Authorized");
@@ -4335,7 +4342,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN', myId: '1'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN', myId: '1'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.result).to.equal("Authorized");
@@ -4362,7 +4369,7 @@ describe('hapi-authorization', () => {
 					handler: (request, h) => { return "Authorized";}
 				}});
 				server.register(plugin, {}).then(() => {
-					server.inject({method: 'GET', url: '/', credentials: {role: 'ADMIN', _id: '1'}}).then((res) => {
+					server.inject({method: 'GET', url: '/', auth: {strategy: "default", credentials: {user: {role: 'ADMIN', _id: '1'}}}}).then((res) => {
 						internals.asyncCheck(() => {
 							expect(res.statusCode).to.equal(200);
 							expect(res.result).to.equal("Authorized");
@@ -4385,9 +4392,9 @@ internals.authSchema = () => {
 		payload: (request, h) => {
 			return request.auth.credentials.payload;
 		},
-		response: (request, h) => {
-			return {};
-		}
+		// response: (request, h) => {
+		// 	return {};
+		// }
 	};
 
 	return scheme;
